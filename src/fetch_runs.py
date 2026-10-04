@@ -41,6 +41,21 @@ for run in data["workflow_runs"]:
 
     # loop through each job in this run
     for job in jobs_data["jobs"]:
-        # only care about jobs that failed
-        if job["conclusion"] == "failure":
+        # only failed jobs, skipping the summary job
+        if job["conclusion"] == "failure" and job["name"] != "test-alls-green":
             print("  Failed job:", job["id"], job["name"])
+                        # build the URL for this job's log
+            log_url = f"https://api.github.com/repos/fastapi/fastapi/actions/jobs/{job['id']}/logs"
+
+            # download the log (it's plain text, not JSON)
+            log_response = requests.get(log_url, headers=headers)
+            log_text = log_response.text
+
+            # split into lines and keep only the last 30
+            lines = log_text.splitlines()
+            last_lines = lines[-30:]
+
+            # print each of those lines
+            for line in last_lines:
+                print("    ", line)
+            break
