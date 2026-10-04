@@ -65,6 +65,10 @@ for run in data["workflow_runs"]:
             # keep only lines before the cleanup, then the last 30 of those
             last_lines = lines[:cut][-30:]
 
+            log_path = f"logs/{run['id']}.txt"
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(last_lines))
+
             # print each of those lines
             for line in last_lines:
                 print("    ", line)
