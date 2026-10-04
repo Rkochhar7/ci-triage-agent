@@ -9,8 +9,9 @@ token = os.getenv("GITHUB_TOKEN")
 
 headers = {"Authorization": f"Bearer {token}"}
 
-url = "https://api.github.com/repos/fastapi/fastapi/actions/workflows/test.yml/runs?status=failure&per_page=5"
-response = requests.get(url, headers=headers)
+url = "https://api.github.com/repos/fastapi/fastapi/actions/workflows/test.yml/runs"
+params = {"status": "failure", "per_page": 5}
+response = requests.get(url, headers=headers, params=params)
 
 print(response.status_code)
 
@@ -34,7 +35,7 @@ for run in data["workflow_runs"]:
     jobs_url = f"https://api.github.com/repos/fastapi/fastapi/actions/runs/{run['id']}/jobs"
 
     # ask GitHub for this run's jobs (same headers as before)
-    jobs_response = requests.get(jobs_url, headers=headers)
+    jobs_response = requests.get(jobs_url, headers=headers, params={"per_page": 100})
 
     # turn the answer into a dictionary
     jobs_data = jobs_response.json()
@@ -44,7 +45,8 @@ for run in data["workflow_runs"]:
         # only failed jobs, skipping the summary job
         if job["conclusion"] == "failure" and job["name"] != "test-alls-green":
             print("  Failed job:", job["id"], job["name"])
-                        # build the URL for this job's log
+
+            # build the URL for this job's log
             log_url = f"https://api.github.com/repos/fastapi/fastapi/actions/jobs/{job['id']}/logs"
 
             # download the log (it's plain text, not JSON)
@@ -53,7 +55,15 @@ for run in data["workflow_runs"]:
 
             # split into lines and keep only the last 30
             lines = log_text.splitlines()
-            last_lines = lines[-30:]
+            # find where GitHub's cleanup starts, so we can cut it off
+            cut = len(lines)    # default: keep everything if we don't find it
+            for i in range(len(lines)):
+                if "Post job cleanup" in lines[i]:
+                    cut = i
+                    break
+
+            # keep only lines before the cleanup, then the last 30 of those
+            last_lines = lines[:cut][-30:]
 
             # print each of those lines
             for line in last_lines:
