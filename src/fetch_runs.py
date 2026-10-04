@@ -29,3 +29,18 @@ for run in data["workflow_runs"]:
 
     # blank line so each run is easy to tell apart
     print()
+
+    # build the URL for this run's jobs, using the run's id
+    jobs_url = f"https://api.github.com/repos/fastapi/fastapi/actions/runs/{run['id']}/jobs"
+
+    # ask GitHub for this run's jobs (same headers as before)
+    jobs_response = requests.get(jobs_url, headers=headers)
+
+    # turn the answer into a dictionary
+    jobs_data = jobs_response.json()
+
+    # loop through each job in this run
+    for job in jobs_data["jobs"]:
+        # only care about jobs that failed
+        if job["conclusion"] == "failure":
+            print("  Failed job:", job["id"], job["name"])
