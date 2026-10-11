@@ -1,4 +1,5 @@
 import os
+import csv
 from dotenv import load_dotenv
 import requests
 
@@ -17,6 +18,8 @@ print(response.status_code)
 
 # turn json into a python dictionary
 data = response.json()
+
+rows = []
 
 # workflow_runs holds a list of failed runs
 # loop through that list one run at a time
@@ -65,11 +68,18 @@ for run in data["workflow_runs"]:
             # keep only lines before the cleanup, then the last 30 of those
             last_lines = lines[:cut][-30:]
 
-            log_path = f"logs/{run['id']}.txt"
+            log_path = f"logs/{job['id']}.txt"
             with open(log_path, "w", encoding="utf-8") as f:
-                f.write("\n".join(last_lines))
+                f.write("\n".join(lines[:cut]))
+
+            rows.append(["fastapi/fastapi", run["id"], job["id"], job["name"], run["display_title"], run["html_url"], log_path])
 
             # print each of those lines
             for line in last_lines:
                 print("    ", line)
             break
+
+with open("runs.csv", "w", newline="", encoding="utf-8") as f:
+    writer = csv.writer(f)
+    writer.writerow(["repo", "run_id", "job_id", "job_name", "title", "url", "log_file"])
+    writer.writerows(rows)
